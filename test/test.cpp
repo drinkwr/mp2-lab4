@@ -30,14 +30,14 @@ TEST(Arithmetic, lexema_check)
     EXPECT_EQ(4, check_arr[1]);
 }
 
-TEST(Parser, lexema_check_unknow_element)
+TEST(Arithmetic, lexema_check_unknow_element)
 {
     string str = "( 123 + 23 *    sin(8)) / 5\n";
     Arithmetic arif;
     EXPECT_ANY_THROW(arif.lex(str));
 }
 
-TEST(Parser, validation_check_ok)
+TEST(Arithmetic, validation_check_ok)
 {
     string str = "( 123 + 23 *    8) / 5\n";
     Arithmetic arif;
@@ -45,7 +45,7 @@ TEST(Parser, validation_check_ok)
     EXPECT_NO_THROW(arif.Validate(lex_res));
 }
 
-TEST(Parser, validation_check_brackets_error)
+TEST(Arithmetic, validation_check_brackets_error)
 {
     string str = "( 123 + 23 * 8)) / 5\n";
     Arithmetic arif;
@@ -53,7 +53,7 @@ TEST(Parser, validation_check_brackets_error)
     EXPECT_ANY_THROW(arif.Validate(lex_res));
 }
 
-TEST(Parser, validation_check_operation_error)
+TEST(Arithmetic, validation_check_operation_error)
 {
     string str = "( 123 ++ 23 * 8) / 5\n";
     Arithmetic arif;
@@ -61,7 +61,7 @@ TEST(Parser, validation_check_operation_error)
     EXPECT_ANY_THROW(arif.Validate(lex_res));
 }
 
-TEST(Parser, postfix_1)
+TEST(Arithmetic, postfix_1)
 {
     string str = "( 123 + 23 * 8) / 5\n";
     Arithmetic arif;
@@ -70,7 +70,7 @@ TEST(Parser, postfix_1)
     EXPECT_EQ("123|23|8|*|+|5|/|",queue_to_string(postfix));
 }
 
-TEST(Parser, postfix_2)
+TEST(Arithmetic, postfix_2)
 {
     string str = "( 123 +10 * 2-1)/ 20\n";
     Arithmetic arif;
@@ -79,7 +79,7 @@ TEST(Parser, postfix_2)
     EXPECT_EQ("123|10|2|*|+|1|-|20|/|",queue_to_string(postfix));
 }
 
-TEST(Parser, calculate1)
+TEST(Arithmetic, calculate1)
 {
     string str = "( 123 +10 * 2-1)/ 20\n";
     Arithmetic arif;
@@ -88,7 +88,7 @@ TEST(Parser, calculate1)
     EXPECT_EQ(7.1, arif.calculate(postfix));
 }
 
-TEST(Parser, calculate2_with_dot)
+TEST(Arithmetic, calculate2_with_dot)
 {
     string str = "( 123.5 +10.4 * 2-1)/ 20\n";
     Arithmetic arif;
@@ -97,7 +97,7 @@ TEST(Parser, calculate2_with_dot)
     EXPECT_GT(0.00000001, abs(7.165 - arif.calculate(postfix)));
 }
 
-TEST(Parser, calculate3)
+TEST(Arithmetic, calculate3)
 {
     string str = "124+56*( (2-8) / 4)";
     Arithmetic arif;
@@ -106,7 +106,7 @@ TEST(Parser, calculate3)
     EXPECT_EQ(40, arif.calculate(postfix));
 }
 
-TEST(Parser, calculate4)
+TEST(Arithmetic, calculate4)
 {
     string str = "78/5+5*2-4";
     Arithmetic arif;
@@ -115,7 +115,7 @@ TEST(Parser, calculate4)
     EXPECT_EQ(21.6, arif.calculate(postfix));
 }
 
-TEST(Parser, calculate_error)
+TEST(Arithmetic, calculate_error)
 {
     string str = "78/5+5*2-";
     Arithmetic arif;
@@ -123,17 +123,5 @@ TEST(Parser, calculate_error)
     queue <Lexema> postfix = arif.toPostfix(lex_res);
     EXPECT_ANY_THROW(arif.calculate(postfix));
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 

@@ -1,46 +1,40 @@
-#pragma once
-#include<vector>
-#include<iostream>
-#include<string>
-#include<map>
-
-class Expression {
-    std::string source_str, modified_str;;
-    std::string alph_separator=".,";
-    std::string OpenBrackets = "([{";
-    std::string CloseBrackets = ")]}";
-    std::string SighsOperations = "-+/*=";
-    std::vector<std::string> postfix_form, variables_list;
-    std::map <std::string, double> variables;
-    std::map <std::string, double> constants;
-    std::map < char, int > prioritet;
-    double res;
-    bool is_correct;
-    bool expressionIsCorrect();
-    void create_postfix();
-    void calculate();
-    void clear();
-    bool isVariable(std::string str);
-    
+#ifndef EXPRESSIONS_H
+#define EXPRESSIONS_H
+#include <iostream>
+template <class T>
+class Stack{
+    int last;
+    int memSize;
+    T* pMem;
 public:
-    bool bracketsIsCorrect();
-    
-    Expression() : is_correct(false),res(0) {};
-    Expression(std::string str);
-    
-    std::string getSourceString() {
-        return source_str;
+    Stack(int _memSize = 10) : last(-1), memSize(_memSize), pMem(new T[memSize]) {};;
+    ~Stack() { delete[] pMem; }
+    size_t Size() const { return last + 1; }
+    bool empty() const { return last == -1; }
+    void push(const T& val){
+        if(last == memSize - 1){
+            T* tmpMem = new T[memSize * 2];
+            std::copy(pMem, pMem + memSize, tmpMem);
+            delete[] pMem;
+            pMem = tmpMem;
+            memSize = memSize * 2;
+        }
+        pMem[++last] = val;
     }
-    void createBinaryMinus();
-    void changebrackets();
-    double getResult() { return res; };
-    bool isCorrect() { return is_correct; }
-    std::string getAcceptableSeparators() { return alph_separator; }
-    std::vector<std::string> getPostfixForm() { return postfix_form; }
-    double getresult() {return res; }
-    Expression& operator=(std::string str);
-    Expression& operator=(const Expression& exp);
-    friend std::istream& operator>>(std::istream& istr,Expression& exp);
-    friend std::ostream& operator<<(std::ostream& ostr,const Expression& exp);
-    
+    T top() { return pMem[last--];}//pop
 };
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,475 +1,289 @@
-#include"expressions.h"
-#include<stack>
-#include<cctype>
-Expression::Expression(std::string str) {
-    source_str = str;
-    
-    is_correct=this->expressionIsCorrect();
-    if(is_correct)
-    {
-        this->changebrackets();
-        this->create_postfix();
-        this->calculate();
-    }
-    prioritet['(']=0;
-    prioritet['[']=0;
-    prioritet['{']=0;
-    prioritet['+']=1;
-    prioritet['-']=1;
-    prioritet['*']=2;
-    prioritet['/']=2;
-    
-}
-Expression& Expression::operator=(const Expression& exp) {
-    if (this == &exp) return *this;
-    variables = exp.variables;
-    postfix_form = exp.postfix_form;
-    is_correct = exp.is_correct;
-    res = exp.res;
-    return *this;
-}
+#include "expressions.h"
+#include<iostream>
+#include<string>
+#include<map>
+#include <queue>
 
-void Expression::changebrackets()
-{
-    for(int i = 0; i < source_str.size(); i++)
-    {
-        if(source_str[i] == '[' || source_str[i] == '{')
-            source_str[i] = '(';
-        if(source_str[i] == ']' || source_str[i] == '}')
-            source_str[i] = ')';
-    }
-}
+using namespace std;
 
-void Expression::clear() {
-    Expression tmp;
-    *this = tmp;
-}
-
-bool in(std::string str, std::vector<std::string> arr) {
-    for (int i = 0; i < arr.size();i++) {
-        if (str == arr[i]) return true;
-    }
-    return false;
-}
-
-bool Expression:: bracketsIsCorrect()
-{
-    std::stack<char> st;
-    std::string str = this->getSourceString(); //строка
-    
-    if(str.size() == 0)
-        return true;
-    for (unsigned int i = 0; i < str.size()-1; i++)
-    {
-        size_t pos1 = OpenBrackets.find(str[i]);
-        size_t pos2 = CloseBrackets.find(str[i+1]);
-        if (pos1 != std::string::npos && pos2 != std::string::npos)
-        {
-            return false;
-        }
-    }
-    for (unsigned int i = 0; i < str.size(); i++)
-    {
-        size_t pos = OpenBrackets.find(str[i]);
-        if(pos != std::string::npos)
-            st.push(CloseBrackets[pos]);
-        
-        if (CloseBrackets.find(str[i]) != std::string::npos && !st.empty() && str[i] == st.top())
-        {
-            st.pop();
-        }
-        else
-        {
-            if (CloseBrackets.find(str[i]) != std::string::npos && st.empty() )
-                return false;
-            if (CloseBrackets.find(str[i]) != std::string::npos && str[i] != st.top() )
-                return false;
-        }
-    }
-    
-    return st.empty();
-}
-
-
-bool Expression::isVariable(std::string str) {
-    if(isdigit(str[0])) return false;
-    for (int i = 1; i < str.size(); i++)
-        if(!(isalpha(str[i]) || isdigit(str[0]))) return false;
-    return true;
-}
-
-enum states {
-    WAIT_LET_NUM_MIN_OPENBR,
-    WAIT_NUM_DOT_OPER_CLOSEBR,
-    WAIT_NUM,
-    WAIT_NUM_OPER_CLOSEBR,
-    WAIT_OPER_CLOSEBR,
-    WAIT_LET_NUM_OPENBR,
-    WAIT_LET_NUM_OPER_CLOSEBR,
-    
-    ERROR
+enum TypeElement {
+    Operation,
+    Value,
+    None
 };
-bool Expression::expressionIsCorrect() {
-    if (this->bracketsIsCorrect() == 0) return false;
-    states a = states::WAIT_LET_NUM_MIN_OPENBR;
-    char symb=' ';
+
+class Lexema  {
+    string str;
+    TypeElement type;
+    int start;
+public:
+    Lexema(string _str = "", TypeElement _type = None, int _start = -1) : str(_str), type(_type), start(_start) {};
+    string getStr() { return str; }
+    TypeElement getType() { return type; }
     
-    for (int i = 0; i < source_str.size(); i++) {
-        symb = source_str[i];
-        
-        switch (a) {
-            case(states::WAIT_LET_NUM_MIN_OPENBR):
-                if (isdigit(symb)){
-                    a = states::WAIT_NUM_DOT_OPER_CLOSEBR;
-                }
-                else if (isalpha(symb)){
-                    a = states::WAIT_LET_NUM_OPER_CLOSEBR;
-                }
-                else if (symb == '-') {
-                    a = states::WAIT_LET_NUM_OPENBR;
-                }
-                else if(OpenBrackets.find(symb) != std::string::npos){
-                    a = a;//cостояние не меняется
-                }
-                else a = states::ERROR;
-                
-                break;
-            case(states::WAIT_NUM_DOT_OPER_CLOSEBR):
-                if(isdigit(symb)){
-                    a = a;
-                }
-                else if (symb == '.') {
-                    a = states::WAIT_NUM;
-                }
-                else if(SighsOperations.find(symb) != std::string::npos){
-                    a = states::WAIT_LET_NUM_OPENBR;
-                }
-                else if(CloseBrackets.find(symb) != std::string::npos){
-                    a = states::WAIT_OPER_CLOSEBR;
-                }
-                else a = states::ERROR;
-                
-                break;
-            case(states::WAIT_NUM):
-                if(isdigit(symb)){
-                    a = states::WAIT_NUM_OPER_CLOSEBR;
-                }
-                else a = states::ERROR;
-                
-                break;
-            case(states::WAIT_NUM_OPER_CLOSEBR) :
-                if(isdigit(symb)){
-                    a = a;
-                }
-                else if(SighsOperations.find(symb) != std::string::npos){
-                    a = states::WAIT_LET_NUM_OPENBR;
-                }
-                else if(CloseBrackets.find(symb) != std::string::npos){
-                    a = states::WAIT_OPER_CLOSEBR;
-                }
-                else a = states::ERROR;
-                
-                break;
-            case(states::WAIT_OPER_CLOSEBR):
-                if(SighsOperations.find(symb) != std::string::npos){
-                    a = states::WAIT_LET_NUM_OPENBR;
-                }
-                else if(CloseBrackets.find(symb) != std::string::npos){
-                    a = a;
-                }
-                else a = states::ERROR;
-                
-                break;
-            case(states::WAIT_LET_NUM_OPENBR):
-                if (isalpha(symb)){
-                    a = states::WAIT_LET_NUM_OPER_CLOSEBR;
-                }
-                else if(isdigit(symb)){
-                    a = states::WAIT_NUM_DOT_OPER_CLOSEBR;
-                }
-                else if(OpenBrackets.find(symb) != std::string::npos){
-                    a = states::WAIT_LET_NUM_MIN_OPENBR;
-                }
-                else {
-                    a = states::ERROR;
-                }
-                
-                break;
-            case(states::WAIT_LET_NUM_OPER_CLOSEBR): {
-                if(isalpha(symb) || isdigit(symb)){
-                    a = a;
-                }
-                else if(SighsOperations.find(symb) != std::string::npos){
-                    a = states::WAIT_LET_NUM_OPENBR;
-                }
-                else if(CloseBrackets.find(symb) != std::string::npos){
-                    a=states::WAIT_OPER_CLOSEBR; //------------------------------
-                }
-                else {
-                    a = states::ERROR;
-                }
-                break;
-            }
-            case(states::ERROR) :
-                return false;
-                break;
+    friend istream& operator >> (istream& in,Lexema& exp) {
+        std::string tmp;
+        std::getline(in, tmp,'\n');
+        exp = tmp;
+        return in;
+    }
+    friend ostream& operator << (ostream& out, Lexema& p) {
+        out << "{" << p.str << ", ";
+        if (p.type == Operation) out << "operation";
+        else if (p.type == Value) out << "value";
+        else out << "none";
+        out << ", " << p.start << "}";
+        return out;
+    }
+
+    int getPriority() {
+        if (type == Operation) {
+            if (str == "(") return 0;
+            if (str == ")") return 1;
+            if (str == "+" || str == "-") return 2;
+            if (str == "*" || str == "/") return 3;
         }
+        if (type == None) return -1;
+        return -2;
     }
-    if(isdigit(symb) || isalpha(symb) || CloseBrackets.find(symb) != std::string::npos){
-        return true;
+};
+
+class IExeption{
+public:
+    virtual void show() = 0;
+};
+
+class LexEx: public IExeption{
+    Lexema lex;
+    string mess;
+public:
+    LexEx(Lexema l, string m = "Lexema"): lex(l), mess(m) {
+        show();
     }
-    return false;
-}
-void Expression::createBinaryMinus()
-{
-    char this_symb = ' ';
-    std::string tmp;
-    if (source_str[0] == '-')
-        tmp += '0';
-    tmp += source_str[0];
-    
-    for (int i = 1; i < source_str.size(); i++) {
-        this_symb = source_str[i];
-        if(OpenBrackets.find(source_str[i - 1]) != std::string::npos && this_symb == '-' )
+    void show() override{
+        cout << mess << " at " << lex << endl;
+    }
+};
+
+class BracketEx: public IExeption{
+    Lexema lex;
+    string mess;
+public:
+    BracketEx(Lexema l, string m = "Brackets"): lex(l), mess(m) {
+        show();
+    }
+    void show() override{
+        cout << mess << " at " << lex << endl;
+    }
+};
+
+class OperationEx: public IExeption{
+    Lexema lex;
+    string mess;
+public:
+    OperationEx(Lexema l, string m = "operation"): lex(l), mess(m) {
+        show();
+    }
+    void show() override{
+        cout << mess << " at " << lex << endl;
+    }
+};
+
+class ArgsEx: public IExeption{
+    Lexema lex;
+    string mess;
+public:
+    ArgsEx(Lexema l, string m = "Arguments"): lex(l), mess(m) {
+        show();
+    }
+    void show() override{
+        cout << mess << " at " << lex << endl;
+    }
+};
+
+class Arithmetic {
+public:
+    string OpenBrackets = "(";
+    string CreateBinMinus(string input)
+    {
+        string tmp;
+        char this_symb = ' ';
+        if (input[0] == '-')
             tmp += '0';
-        tmp += this_symb;
-    }
-    modified_str = tmp;
-}
-
-void Expression::create_postfix()
-{
-    prioritet['(']=0;
-    prioritet['[']=0;
-    prioritet['{']=0;
-    prioritet['+']=1;
-    prioritet['-']=1;
-    prioritet['*']=2;
-    prioritet['/']=2;
-    
-    variables["pi"]=3.1415926535897931;
-    variables["e"]=2.718281828459045;
-    
-    std::stack<char> operations;
-    std::string token = "";
-    if (is_correct == false)
-        return;
-    
-    createBinaryMinus();
-    source_str = modified_str;
-    
-    for (int i = 0; i < source_str.size(); i++)
-    {
-        if(isdigit(source_str[i]) || source_str[i]=='.' || isalpha(source_str[i]))
-            token += source_str[i];
-        else
-        {
-            if(token != "")
-            {
-                
-                if(SighsOperations.find(token) == std::string::npos)
-                {
-                    if(isalpha(token[0]))
-                    {
-                        double val = variables[token];
-                        postfix_form.push_back(std::to_string(val));
-                    }
-                    else
-                    {
-                        postfix_form.push_back(token);
-                        variables[token] = std::stod(token);
-                    }
-                }
-                token = "";
-            }
-            
-            if (SighsOperations.find(source_str[i]) != std::string::npos)
-            {
-                if(!operations.empty())
-                {
-                    while(!operations.empty() && operations.top() != '(' &&
-                          prioritet[operations.top()] >= prioritet[source_str[i]])
-                    {
-                        std::string a(1,operations.top());
-                        postfix_form.push_back(a);
-                        operations.pop();
-                    }
-                }
-                
-                operations.push(source_str[i]);
-            }
-            else
-            {
-                if(source_str[i] == '(')
-                    operations.push(source_str[i]);
-                else
-                {
-                    while(operations.top() != '(')
-                    {
-                        std::string a(1,operations.top());
-                        postfix_form.push_back(a);
-                        operations.pop();
-                    }
-                    operations.pop();
-                }
-            }
+        tmp += input[0];
+        for (int i = 1; i < input.size(); i++) {
+            this_symb = input[i];
+            if(OpenBrackets.find(input[i - 1]) != string::npos && this_symb == '-' )
+                tmp += '0';
+            tmp += this_symb;
         }
+        return tmp;
     }
-    if(token != "")
-    {
-        if(SighsOperations.find(token) == std::string::npos)
-        {
-            if(isalpha(token[0]))
-            {
-                double val = variables[token];
-                //postfix_form.push_back(std::to_string(val));
-                char str[100];
-                std:: sprintf(str, "%.16lf", val);
-                postfix_form.push_back(std::string(str));
-            }
-            else
-            {
-                postfix_form.push_back(token);
-                variables[token] = std::stod(token);
-            }
-        }
-    }
-    while(!operations.empty())
-    {
-        std::string a(1,operations.top());
-        postfix_form.push_back(a);
-        operations.pop();
-    }
-}
-
-void Expression::calculate() {
-    std::stack<double> st;
-    std::string lexem;
-    double v1, v2;
-    for (int i = 0; i < postfix_form.size(); i++) {
-        lexem = postfix_form[i];
+    
+    queue<Lexema> lex(string input) {
+        queue<Lexema>res;
+        input += ' ';
+        input = CreateBinMinus(input);
+        string tmp = "";
+        int state = 0;
+        string op = "+-*//*()";
+        string sep = " \n\t";
+        Lexema P (tmp, None);
         
-        if (lexem == "+") {
-            v2 = st.top(); st.pop();
-            
-            v1 = st.top(); st.pop();
-            
-            st.push(v1 + v2);
-        }
-        else if (lexem == "-") {
-            v2 = st.top(); st.pop();
-            v1 = st.top(); st.pop();
-            
-            st.push(v1 - v2);
-        }
-        else if (lexem == "*") {
-            v2 = st.top(); st.pop();
-            v1 = st.top(); st.pop();
-            st.push(v1 * v2);
-        }
-        else if (lexem == "/") {
-            v2 = st.top(); st.pop();
-            v1 = st.top(); st.pop();
-            if (v2 == 0) {
-                std::cout << "Division by zero\n";
-                is_correct = false;
+        for (int i = 0; i < input.size(); i++) {
+            char c = input[i];
+            switch (state)
+            {
+            case 0:
+                if (c >= '0' && c <= '9') {
+                    tmp = c;
+                    state = 1;
+                    break;
+                }
+                if (op.find(c) != string::npos) {
+                    tmp = c;
+                    Lexema l(tmp, Operation);
+                    res.push(l);
+                    state = 0;
+                    break;
+                }
+                if (sep.find(c) != string::npos) {
+                    tmp = "";
+                    break;
+                }
+                    throw LexEx(P, "Unknown element");
+                    //throw "Unknown element";
+                    
+            case 1:
+                    if ((c >= '0' && c <= '9') || c == '.') {
+                    tmp += c;
+                    break;
+                }
+                if (op.find(c) != string::npos) {
+                    Lexema l1(tmp, Value);
+                    res.push(l1);
+                    tmp = c;
+                    Lexema l2(tmp, Operation);
+                    res.push(l2);
+                    state = 0;
+                    break;
+                }
+                if (sep.find(c) != string::npos) {
+                    Lexema l(tmp, Value);
+                    res.push(l);
+                    state = 0;
+                    break;
+                }
+                    throw LexEx(P, "Unknown element");
+                    //throw "Unknown element";
+            default:
                 break;
             }
-            st.push(v1 / v2);
         }
-        else
-        {
-            if (isalpha(lexem[0]))
-                st.push(variables[lexem]);
-            else
-                st.push(std::stod(lexem));
-        }
-        
+        return res;
     }
-    if(st.empty()==false)
-        res = st.top();
-}
+
+    void Validate(queue<Lexema> lex) {
+        int open = 0;
+        int close = 0;
+        Lexema current_lex;
+        Lexema prev;
+        while (!lex.empty()) {
+            current_lex = lex.front();
+            if (current_lex.getStr() == "(") open++;
+            else if (current_lex.getStr() == ")") close++;
+
+            if (close > open) throw BracketEx(current_lex, "Extra )");
+
+            if (prev.getPriority() > 1 && current_lex.getPriority() > 1 && prev.getType() == Operation && current_lex.getType() == Operation) throw OperationEx(current_lex, "Operation conflict");
+            prev = current_lex;
+            lex.pop();
+        }
+        if (open > close) throw BracketEx(current_lex, "Unclosed (");
+    }
 
 
-void delete_spaces(std::string& str) {
-    std::string tmp;
-    for (int i = 0; i < str.size(); i++)
-        if (str[i] != ' ')
-            tmp += str[i];
-    str = tmp;
-}
+    queue<Lexema> toPostfix(queue<Lexema> lex_res) {
+        cout << endl;
+        Stack<Lexema> operStack;
+        queue<Lexema> res;
+        while (!lex_res.empty()) {
+            Lexema tmp = lex_res.front();
 
-Expression& Expression::operator=(std::string str) {
-    delete_spaces(str);
-    
-    std::string token1, token2;
-    bool flag = true;
-    for (int i = 0; i < str.size(); i++) {
-        if (str[i] == '=') {
-            flag = false;
-            continue;
-        }
-        if (flag)
-            token1 += str[i];
-        else token2 += str[i];
-    }
-    if (token2 == "") {
-        source_str = str;
-        is_correct = expressionIsCorrect();
-        if (is_correct) {
-            create_postfix();
-            calculate();
-        }
-        else source_str = "";
-    }
-    else if (source_str=="" && isVariable(token1)) {
-        Expression tmpexp2;
-        tmpexp2.variables = variables;
-        tmpexp2 = token2;
-        if (!tmpexp2.is_correct) throw("Expression is not correct");
-        variables[token1] = tmpexp2.res;
-    }
-    else if(in(token1,variables_list)) {
-        Expression tmpexp2;
-        tmpexp2.variables = variables;
-        tmpexp2 = token2;
-        if (!tmpexp2.expressionIsCorrect()) throw("Expression is not correct");
-        
-        variables[token1] = tmpexp2.res;
-        calculate();
-    }
-    else {
-        Expression tmpexp1(token1), tmpexp2(token2);
-        if (tmpexp1.is_correct && tmpexp2.is_correct) {
-            if (tmpexp1.res == tmpexp2.res) {
-                source_str = token1;
-                res = tmpexp1.res;
-                is_correct = true;
-                create_postfix();
-                variables_list = tmpexp1.variables_list;
-                variables = tmpexp1.variables;
+            if (tmp.getType() == Operation) {
+                if (tmp.getStr() != "(") {
+                    while (!operStack.empty()) {
+                        Lexema prevOper = operStack.top();
+                        if (tmp.getPriority() <= prevOper.getPriority()) {
+                            res.push(prevOper);
+                        }
+                        else {
+                            if (tmp.getStr() != ")" && prevOper.getStr() != "(") {
+                                operStack.push(prevOper);
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (tmp.getStr() != ")") {
+                    operStack.push(tmp);
+                }
             }
-            else is_correct = false;
-            
+            else {
+                res.push(tmp);
+            }
+            lex_res.pop();
         }
-        if(!is_correct)
-            throw("Expressions is not correct");
+        while (!operStack.empty()) {
+            Lexema prevOper = operStack.top();
+            res.push(prevOper);
+        }
+        return res;
     }
-    return *this;
-}
 
-std::istream& operator>>(std::istream& istream,Expression& exp) {
-    std::string tmp;
-    std::getline(istream, tmp,'\n');
-    exp = tmp;
-    return istream;
-}
-std::ostream& operator<<(std::ostream& ostream, const Expression& exp) {
-    if (exp.is_correct)
-        ostream << exp.source_str<<"="<<exp.res;
-    else ostream << "Expression is not correct";
-    return ostream;
-}
+    double calculate(queue<Lexema> post) {
+        Stack<double> digitStack;
+        Lexema lex;
+        while (!post.empty()) {
+            lex = post.front();
+
+            if (lex.getType() == Operation) {
+                if (digitStack.Size() < 2) throw ArgsEx(lex, "Missing argument");
+                double a, b;
+                a = digitStack.top();
+                b = digitStack.top();
+                switch (lex.getStr()[0]) {
+                case '+':
+                    digitStack.push(a + b);
+                    break;
+                case '-':
+                    digitStack.push(b - a);
+                    break;
+                case '*':
+                    digitStack.push(a * b);
+                    break;
+                case '/':
+                    digitStack.push(b / a);
+                    break;
+                default:
+                    break;
+                }
+            }
+            else {
+                digitStack.push(stod(lex.getStr()));
+            }
+            post.pop();
+        }
+        return digitStack.top();
+    }
+};
+
+
+
+
+
+
+
 
 
 

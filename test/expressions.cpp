@@ -151,7 +151,7 @@ public:
                     tmp = "";
                     break;
                 }
-                    throw LexEx(P, "Unknown element");
+                    throw new LexEx(P, "Unknown element");
                     //throw "Unknown element";
                     
             case 1:
@@ -174,10 +174,10 @@ public:
                     state = 0;
                     break;
                 }
-                    throw LexEx(P, "Unknown element");
+                    throw new LexEx(P, "Unknown element");
                     //throw "Unknown element";
             default:
-                break;
+                break; 
             }
         }
         return res;
@@ -192,19 +192,32 @@ public:
             current_lex = lex.front();
             if (current_lex.getStr() == "(") open++;
             else if (current_lex.getStr() == ")") close++;
+            if((prev.getType() == Value && current_lex.getStr() == "(") || (prev.getStr() == ")" && current_lex.getType() == Value))
+                throw new OperationEx(current_lex, "Incorrect operation");
 
-            if (close > open) throw BracketEx(current_lex, "Extra )");
+            if (close > open) throw new BracketEx(current_lex, "Extra )");
 
-            if (prev.getPriority() > 1 && current_lex.getPriority() > 1 && prev.getType() == Operation && current_lex.getType() == Operation) throw OperationEx(current_lex, "Operation conflict");
+            if (prev.getPriority() > 1 && current_lex.getPriority() > 1 && prev.getType() == Operation && current_lex.getType() == Operation) throw new OperationEx(current_lex, "Operation conflict");
             prev = current_lex;
             lex.pop();
         }
-        if (open > close) throw BracketEx(current_lex, "Unclosed (");
+        if (open > close) throw new BracketEx(current_lex, "Unclosed (");
     }
 
 
     queue<Lexema> toPostfix(queue<Lexema> lex_res) {
         cout << endl;
+        
+        try
+        {
+            Validate(lex_res);
+        }
+        catch (IExeption * ex)
+        {
+            string s = " ";
+            throw s;
+        }
+        
         Stack<Lexema> operStack;
         queue<Lexema> res;
         while (!lex_res.empty()) {
@@ -263,6 +276,11 @@ public:
                     digitStack.push(a * b);
                     break;
                 case '/':
+                        if(a == 0)
+                        {
+                            string s = "ERROR division by zero";
+                            throw s;
+                        }
                     digitStack.push(b / a);
                     break;
                 default:
